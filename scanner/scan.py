@@ -171,28 +171,29 @@ def scan_market(items,market,nse_cache=None):
                 cw_low=float(cur['Low'].min())
                 latest=float(cur['Close'].iloc[-1])
 
-                # Qualify only when:
-                # 1) current week swept the prior week's high/low,
-                # 2) the sweep candle closed back inside the prior-week range,
-                # 3) latest completed close is still inside that range.
+                # Fakeout/re-entry rule:
+                # 1) price must have broken the prior week's high/low at ANY point during
+                #    the current week (the breakout candle does not need to close back inside),
+                # 2) the latest completed NSE close must now be back inside the prior-week range.
+                # This captures stocks that broke out first and then returned into the zone later.
                 inside_now=pl < latest < ph
-                high_trigger=cur[(cur['High']>ph)&(cur['Close']<ph)]
-                low_trigger=cur[(cur['Low']<pl)&(cur['Close']>pl)]
+                high_break=cur[cur['High']>ph]
+                low_break=cur[cur['Low']<pl]
 
                 candidates=[]
-                if inside_now and not high_trigger.empty:
-                    r=high_trigger.iloc[0]
-                    trigger=high_trigger.index[0]
-                    sweep=float(r['High'])
+                if inside_now and not high_break.empty:
+                    r=high_break.iloc[0]
+                    trigger=high_break.index[0]
+                    sweep=float(high_break['High'].max())
                     close=float(r['Close'])
                     vol=(cw_high-cw_low)/close*100
                     dist=(ph-latest)/ph*100
                     candidates.append(('HIGH',trigger,sweep,close,vol,dist,latest))
 
-                if inside_now and not low_trigger.empty:
-                    r=low_trigger.iloc[0]
-                    trigger=low_trigger.index[0]
-                    sweep=float(r['Low'])
+                if inside_now and not low_break.empty:
+                    r=low_break.iloc[0]
+                    trigger=low_break.index[0]
+                    sweep=float(low_break['Low'].min())
                     close=float(r['Close'])
                     vol=(cw_high-cw_low)/close*100
                     dist=(latest-pl)/pl*100
