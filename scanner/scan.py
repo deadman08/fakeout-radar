@@ -69,19 +69,22 @@ def scan_market(items,market):
                 ph=float(prev['High'].max()); pl=float(prev['Low'].min())
                 cur=cur.sort_index()
                 cw_high=float(cur['High'].max()); cw_low=float(cur['Low'].min()); latest=float(cur['Close'].iloc[-1])
+
+                # Qualify only if the stock swept the previous week's level and is now back inside the previous week's range.
+                inside_now = pl < latest < ph
                 high_trigger=cur[(cur['High']>ph)&(cur['Close']<ph)]
                 low_trigger=cur[(cur['Low']<pl)&(cur['Close']>pl)]
                 candidates=[]
-                if not high_trigger.empty:
+                if inside_now and not high_trigger.empty:
                     r=high_trigger.iloc[0]; trigger=high_trigger.index[0]
-                    sweep=float(r['High']); close=float(r['Close']); vol=(cw_high-cw_low)/close*100; dist=(ph-close)/ph*100
-                    candidates.append(('HIGH',trigger,sweep,close,vol,dist))
-                if not low_trigger.empty:
+                    sweep=float(r['High']); close=float(r['Close']); vol=(cw_high-cw_low)/close*100; dist=(ph-latest)/ph*100
+                    candidates.append(('HIGH',trigger,sweep,close,vol,dist,latest))
+                if inside_now and not low_trigger.empty:
                     r=low_trigger.iloc[0]; trigger=low_trigger.index[0]
-                    sweep=float(r['Low']); close=float(r['Close']); vol=(cw_high-cw_low)/close*100; dist=(close-pl)/pl*100
-                    candidates.append(('LOW',trigger,sweep,close,vol,dist))
-                for signal,trigger,sweep,close,vol,dist in candidates:
-                    rows.append({'symbol':sym,'company':name,'signal':signal,'trigger_date':pd.Timestamp(trigger).strftime('%Y-%m-%d'),'prev_week_high':round(ph,4),'prev_week_low':round(pl,4),'sweep_price':round(sweep,4),'trigger_close':round(close,4),'volatility_pct':round(vol,2),'distance_pct':round(dist,2)})
+                    sweep=float(r['Low']); close=float(r['Close']); vol=(cw_high-cw_low)/close*100; dist=(latest-pl)/pl*100
+                    candidates.append(('LOW',trigger,sweep,close,vol,dist,latest))
+                for signal,trigger,sweep,close,vol,dist,current_close in candidates:
+                    rows.append({'symbol':sym,'company':name,'signal':signal,'trigger_date':pd.Timestamp(trigger).strftime('%Y-%m-%d'),'prev_week_high':round(ph,4),'prev_week_low':round(pl,4),'sweep_price':round(sweep,4),'trigger_close':round(close,4),'current_close':round(current_close,4),'volatility_pct':round(vol,2),'distance_pct':round(dist,2)})
             except Exception:
                 continue
     return {'generated_at':datetime.now(timezone.utc).isoformat(),'data_as_of':now.strftime('%Y-%m-%d %H:%M'),'week_start':cur_mon.strftime('%Y-%m-%d'),'week_end':(cur_mon+pd.Timedelta(days=4)).strftime('%Y-%m-%d'),'source':'Yahoo Finance daily OHLC; membership from Nifty Indices / Wikipedia S&P 500','rows':rows,'counts':{'all':len(rows),'high':sum(r['signal']=='HIGH' for r in rows),'low':sum(r['signal']=='LOW' for r in rows)}}
