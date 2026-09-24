@@ -148,9 +148,9 @@ def main():
                 details[sym]["timeframes"].setdefault(tf,{})["sell"]=s
                 if best_s is None or s["score"]>best_s[1]["score"]: best_s=(tf,s)
         if best_b:
-            tf,b=best_b; buy.append({"symbol":sym,"company":name,"timeframe":tf,**{k:b[k] for k in ["setup","price","trigger","score","rsi","volume_ratio","retracement_pct"]}})
+            tf,b=best_b; buy.append({"symbol":sym,"company":name,"timeframe":tf,**{k:b[k] for k in ["setup","price","trigger","score","rsi","volume_ratio","retracement_pct","targets","invalidation"]},"t1":b["targets"]["T1"],"t2":b["targets"]["T2"],"t3":b["targets"]["T3"]})
         if best_s:
-            tf,s=best_s; sell.append({"symbol":sym,"company":name,"timeframe":tf,**{k:s[k] for k in ["setup","price","trigger","score","rsi","volume_ratio","retracement_pct"]}})
+            tf,s=best_s; sell.append({"symbol":sym,"company":name,"timeframe":tf,**{k:s[k] for k in ["setup","price","trigger","score","rsi","volume_ratio","retracement_pct","targets","invalidation"]},"t1":s["targets"]["T1"],"t2":s["targets"]["T2"],"t3":s["targets"]["T3"]})
     out={"generated_at":datetime.now(timezone.utc).isoformat(),
          "source":"Yahoo Finance intraday OHLC; NIFTY 50 constituents from NSE",
          "note":"Rule-based Elliott-style heuristic. Wave labels are potential structures, not definitive Elliott Wave analysis.",
