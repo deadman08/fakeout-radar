@@ -38,16 +38,47 @@ function drawEW(){
   EWCHART.timeScale().fitContent();
   ewRestore();
   const level=(v,label,color)=>{if(!Number.isFinite(+v))return;let s=EWCHART.addLineSeries({color,width:1,lineStyle:L.LineStyle.Dashed,priceLineVisible:false,lastValueVisible:true,title:label});s.setData(data.map(x=>({time:x.time,value:+v})));EWLINES.push(s)};
-  if(EWPROJECTION){ level(t.trigger,'TRIGGER','#fff'); const pv=(t.pivots||[]).filter(p=>Number.isFinite(+p.price)); if(pv.length>=3){ const wave=pv.map(p=>({time:Math.floor(new Date(p.time).getTime()/1000),price:+p.price})); const end=data[data.length-1].time; const step=Math.max(86400,Math.round((end-wave[2].time)/4)||86400); const projected=[{time:wave[2].time,price:wave[2].price},{time:end+step,price:+(t.targets?.T1??wave[2].price)},{time:end+step*2,price:+(t.targets?.T2??wave[2].price)},{time:end+step*3,price:+(t.targets?.T3??wave[2].price)}]; const s=EWCHART.addLineSeries({color:'#ffb84d',width:3,lineStyle:L.LineStyle.Solid,priceLineVisible:false,lastValueVisible:false,title:'Elliott projection'}); s.setData([...wave,...projected]); EWLINES.push(s); } }
+  if(EWPROJECTION){ level(t.trigger,'TRIGGER','#fff');
+    const pv=(t.pivots||[]).filter(p=>Number.isFinite(+p.price));
+    if(pv.length>=3){
+      const wave=pv.slice(0,3).map(p=>({time:Math.floor(new Date(p.time).getTime()/1000),price:+p.price}));
+      const endTime=data[data.length-1].time;
+      const step=Math.max(86400,Math.round((endTime-wave[2].time)/4)||86400);
+      const t1=+(t.targets?.T1??wave[2].price),t2=+(t.targets?.T2??wave[2].price),t3=+(t.targets?.T3??wave[2].price);
+      const dir=S.ew.side==='BUY'?1:-1;
+      const waveLen=Math.abs(wave[1].price-wave[0].price);
+      const wave4= t2-dir*waveLen*.382;
+      const projected=[
+        {time:wave[2].time,price:wave[2].price},
+        {time:endTime+step,price:t1},
+        {time:endTime+step*2,price:wave4},
+        {time:endTime+step*3,price:t3}
+      ];
+      const hist=EWCHART.addLineSeries({color:'#b9adff',width:3,lineStyle:L.LineStyle.Solid,priceLineVisible:false,lastValueVisible:false,title:'Elliott swings 0-1-2'});
+      hist.setData(wave);
+      EWLINES.push(hist);
+      const proj=EWCHART.addLineSeries({color:'#ffb84d',width:3,lineStyle:L.LineStyle.Solid,priceLineVisible:false,lastValueVisible:false,title:'Elliott projection 3-4-5'});
+      proj.setData(projected);
+      EWLINES.push(proj);
+      [
+        [wave[0],'0'],[wave[1],'1'],[wave[2],'2'],
+        [projected[1],'3'],[projected[2],'4'],[projected[3],'5']
+      ].forEach(([pt,label])=>{
+        const s=EWCHART.addLineSeries({color:'#ffb84d',width:1,priceLineVisible:false,lastValueVisible:true,title:'Wave '+label});
+        s.setData(data.map(x=>({time:x.time,value:pt.price})));
+        EWLINES.push(s);
+      });
+    }
+  }
   (t.pivots||[]).forEach(p=>{let s=EWCHART.addLineSeries({color:'#b9adff',width:2,priceLineVisible:false,lastValueVisible:false,title:'Wave '+p.label});let tm=Math.floor(new Date(p.time).getTime()/1000);s.setData([{time:tm,value:+p.price},{time:data[data.length-1].time,value:+p.price}]);EWLINES.push(s)});
   // Elliott wave count markers: Wave 1, Wave 2 and Wave 3 are shown directly on the candles.
   if(t.pivots?.length>=3 && EWSERIES && EWSERIES.setMarkers){
     const marks=t.pivots.slice(0,3).map((p,i)=>({
       time:Math.floor(new Date(p.time).getTime()/1000),
-      position:(i===1 ? (S.ew.side==='BUY'?'aboveBar':'belowBar') : (S.ew.side==='BUY'?'belowBar':'aboveBar')),
+      position:'inBar',
       color:'#ffb84d',
       shape:'circle',
-      text:'Wave '+(i+1)
+      text:String(i)
     }));
     EWSERIES.setMarkers(marks);
   }
