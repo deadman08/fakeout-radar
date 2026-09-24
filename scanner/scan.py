@@ -30,6 +30,7 @@ def get_sp500():
 
 def normalize(sym,market):
     if market in ('nifty50','nifty500'):
+        # India scanner is NSE-only. Yahoo Finance's .NS suffix explicitly targets NSE data.
         return sym.replace('&','-')+'.NS'
     return sym.replace('.','-')
 
@@ -49,6 +50,8 @@ def scan_market(items,market):
     for j in range(0,len(items),60):
         batch=items[j:j+60]
         tickers=[normalize(s,market) for s,_ in batch]
+        if market in ('nifty50','nifty500'):
+            tickers=[t for t in tickers if t.endswith('.NS')]
         try:
             raw=yf.download(tickers,start=start.strftime('%Y-%m-%d'),end=(now+pd.Timedelta(days=1)).strftime('%Y-%m-%d'),interval='1d',auto_adjust=False,group_by='ticker',threads=True,progress=False)
         except Exception:
@@ -87,7 +90,7 @@ def scan_market(items,market):
                     rows.append({'symbol':sym,'company':name,'signal':signal,'trigger_date':pd.Timestamp(trigger).strftime('%Y-%m-%d'),'prev_week_high':round(ph,4),'prev_week_low':round(pl,4),'sweep_price':round(sweep,4),'trigger_close':round(close,4),'current_close':round(current_close,4),'volatility_pct':round(vol,2),'distance_pct':round(dist,2)})
             except Exception:
                 continue
-    return {'generated_at':datetime.now(timezone.utc).isoformat(),'data_as_of':now.strftime('%Y-%m-%d %H:%M'),'week_start':cur_mon.strftime('%Y-%m-%d'),'week_end':(cur_mon+pd.Timedelta(days=4)).strftime('%Y-%m-%d'),'source':'Yahoo Finance daily OHLC; membership from Nifty Indices / Wikipedia S&P 500','rows':rows,'counts':{'all':len(rows),'high':sum(r['signal']=='HIGH' for r in rows),'low':sum(r['signal']=='LOW' for r in rows)}}
+    return {'generated_at':datetime.now(timezone.utc).isoformat(),'data_as_of':now.strftime('%Y-%m-%d %H:%M'),'week_start':cur_mon.strftime('%Y-%m-%d'),'week_end':(cur_mon+pd.Timedelta(days=4)).strftime('%Y-%m-%d'),'source':'Yahoo Finance daily OHLC; India universe = NSE NIFTY 50/500 constituents (.NS); US universe = S&P 500','rows':rows,'counts':{'all':len(rows),'high':sum(r['signal']=='HIGH' for r in rows),'low':sum(r['signal']=='LOW' for r in rows)}}
 
 def main():
     os.makedirs('site/data',exist_ok=True)
