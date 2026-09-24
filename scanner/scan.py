@@ -21,13 +21,28 @@ def get_nifty(url):
     return [(str(s).strip(),str(n).strip()) for s,n in zip(df[sym_col],df[name_col])]
 
 
-def get_sp500():
-    url='https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
-    r=requests.get(url,headers={'User-Agent':UA,'Accept':'text/html,application/xhtml+xml'},timeout=30)
-    r.raise_for_status()
-    tables=pd.read_html(StringIO(r.text))
-    df=tables[0]
-    return [(str(s).strip(),str(n).strip()) for s,n in zip(df['Symbol'],df['Security'])]
+US_TOP50 = [
+    ("NVDA","NVIDIA Corporation"),("MSFT","Microsoft Corporation"),("AAPL","Apple Inc."),
+    ("AMZN","Amazon.com Inc."),("META","Meta Platforms Inc."),("AVGO","Broadcom Inc."),
+    ("GOOGL","Alphabet Inc. Class A"),("GOOG","Alphabet Inc. Class C"),("TSLA","Tesla Inc."),
+    ("BRK-B","Berkshire Hathaway Inc. Class B"),("UNH","UnitedHealth Group Incorporated"),
+    ("LLY","Eli Lilly and Company"),("V","Visa Inc."),("XOM","Exxon Mobil Corporation"),
+    ("JPM","JPMorgan Chase & Co."),("JNJ","Johnson & Johnson"),("WMT","Walmart Inc."),
+    ("MA","Mastercard Incorporated"),("PG","The Procter & Gamble Company"),("ORCL","Oracle Corporation"),
+    ("HD","The Home Depot Inc."),("COST","Costco Wholesale Corporation"),("NFLX","Netflix Inc."),
+    ("ABBV","AbbVie Inc."),("BAC","Bank of America Corporation"),("KO","The Coca-Cola Company"),
+    ("CVX","Chevron Corporation"),("AMD","Advanced Micro Devices Inc."),("ADBE","Adobe Inc."),
+    ("PEP","PepsiCo Inc."),("TMO","Thermo Fisher Scientific Inc."),("MRK","Merck & Co. Inc."),
+    ("TMUS","T-Mobile US Inc."),("DIS","The Walt Disney Company"),("ABT","Abbott Laboratories"),
+    ("ACN","Accenture plc"),("CSCO","Cisco Systems Inc."),("VZ","Verizon Communications Inc."),
+    ("DHR","Danaher Corporation"),("TXN","Texas Instruments Incorporated"),("NEE","NextEra Energy Inc."),
+    ("CRM","Salesforce Inc."),("WFC","Wells Fargo & Company"),("LIN","Linde plc"),
+    ("QCOM","QUALCOMM Incorporated"),("BMY","Bristol-Myers Squibb Company"),("UPS","United Parcel Service Inc."),
+    ("RTX","Raytheon Technologies Corporation"),("LOW","Lowe's Companies Inc."),("AMGN","Amgen Inc.")
+]
+
+def get_us_top50():
+    return US_TOP50
 
 
 def normalize(sym,market):
@@ -220,7 +235,7 @@ def scan_market(items,market,nse_cache=None):
     source=(
         'NSE CM bhavcopy official OHLC; NIFTY 50/500 NSE constituents'
         if market in ('nifty50','nifty500')
-        else 'Yahoo Finance daily OHLC; S&P 500 membership from Wikipedia'
+        else 'Yahoo Finance daily OHLC; S&P 500 Top 50 universe'
     )
     return {
         'generated_at':datetime.now(timezone.utc).isoformat(),
@@ -245,7 +260,7 @@ def main():
     markets={
         'nifty50':nifty50,
         'nifty500':nifty500,
-        'us500':get_sp500()
+        'us500':get_us_top50()
     }
 
     now=pd.Timestamp.now(tz='Asia/Kolkata').tz_localize(None)
