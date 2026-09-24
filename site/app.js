@@ -17,8 +17,6 @@ function ewClear(){if(EWCHART){try{EWCHART.remove()}catch(e){}}EWCHART=null;EWPR
 function ewColor(v){return v>=0?'#27d69a':'#ff5577'}
 function ewCalcEMA(v,n){let k=2/(n+1),o=[],p=null;for(let x of v){p=p==null?x:x*k+p*(1-k);o.push(p)}return o}
 function ewCalcVWAP(d){let pv=0,vo=0;return d.map(x=>{let v=+x.volume||0;pv+=((x.high+x.low+x.close)/3)*v;vo+=v;return vo?pv/vo:null})}
-function ewPositionInvalidation(t,data){const pt=$('ewInvalidationPoint'),tip=$('ewInvalidationTooltip'),wrap=$('ewChartWrap');if(!pt||!tip||!wrap)return;const piv=(t.pivots||[])[0];if(!piv||!Number.isFinite(+t.invalidation)){pt.style.display='none';tip.style.display='none';return}const tm=Math.floor(new Date(piv.time).getTime()/1000);const x=EWCHART.timeScale().timeToCoordinate(tm),y=EWCHART.priceScale('right').priceToCoordinate(+t.invalidation);if(x==null||y==null){pt.style.display='none';tip.style.display='none';return}pt.style.display='grid';pt.style.left=x+'px';pt.style.top=y+'px';tip.style.left=Math.min(Math.max(8,x+16),Math.max(8,wrap.clientWidth-270))+'px';tip.style.top=Math.max(8,y-58)+'px';tip.innerHTML='<b>⚠ Elliott invalidation</b>'+(S.ew?.side==='BUY'?'Wave 2 invalidated — price broke below the Wave 1 origin.':'Wave 2 invalidated — price broke above the Wave 1 origin.')+'<br>Price '+money(t.invalidation)+' invalidates the projected Wave 3 setup.';tip.style.display='none';pt.onclick=()=>{tip.style.display=tip.style.display==='block'?'none':'block'};}
-
 function ewCalcEMA(v,n){let k=2/(n+1),o=[],p=null;for(let x of v){p=p==null?x:x*k+p*(1-k);o.push(p)}return o}
 function ewCalcVWAP(d){let pv=0,vo=0;return d.map(x=>{let v=+x.volume||0;pv+=((x.high+x.low+x.close)/3)*v;vo+=v;return vo?pv/vo:null})}
 function drawEW(){
@@ -36,7 +34,6 @@ function drawEW(){
   else{EWSERIES=EWCHART.addCandlestickSeries({upColor:'#27d69a',downColor:'#ff5577',borderUpColor:'#27d69a',borderDownColor:'#ff5577',wickUpColor:'#27d69a',wickDownColor:'#ff5577'});EWSERIES.setData(data);}
   const line=(vals,label,color)=>{let s=EWCHART.addLineSeries({color,width:1,priceLineVisible:false,lastValueVisible:true,title:label});s.setData(data.map((x,i)=>({time:x.time,value:vals[i]})).filter(x=>Number.isFinite(x.value)));EWLINES.push(s)};
   let closes=data.map(x=>x.close);if(EWIND.ema20)line(ewCalcEMA(closes,20),'EMA 20','#f5c542');if(EWIND.ema50)line(ewCalcEMA(closes,50),'EMA 50','#7c5cff');if(EWIND.vwap)line(ewCalcVWAP(data),'VWAP','#4da3ff');
-  ewPositionInvalidation(t,data);
   if(EWIND.volume){let v=data.map(x=>({time:x.time,value:x.volume,color:x.close>=x.open?'rgba(39,214,154,.35)':'rgba(255,85,119,.35)'})).filter(x=>x.value>0);if(v.length){EWVOL=EWCHART.addHistogramSeries({priceFormat:{type:'volume'},priceScaleId:'vol'});EWVOL.setData(v);EWCHART.priceScale('vol').applyOptions({scaleMargins:{top:.82,bottom:0},borderVisible:false})}}
   EWCHART.timeScale().fitContent();
   ewRestore();
@@ -78,4 +75,4 @@ s.addEventListener('pointermove',e=>{if(!EWSTART)return;let p=ewLogicalPoint(e);
 s.addEventListener('pointerup',e=>{if(EWDRAW==='brush'){if(EWBRUSH.length>1)ewPush({type:'brush',points:EWBRUSH.slice()});EWBRUSH=[];EWSTART=null;ewDrawSvg();return}if(EWSTART){let p=ewLogicalPoint(e);if(Math.hypot(p.x-EWSTART.x,p.y-EWSTART.y)>3){if(EWDRAW==='fib')ewPush({type:'fib',time:EWSTART.time,price1:EWSTART.price,end:p,price2:p.price});else ewPush({type:EWDRAW,time:EWSTART.time,price:EWSTART.price,end:p})}EWSTART=null;ewDrawSvg()}});
 })();
 window.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();if(EWUNDO.length){EWREDO.push(JSON.stringify(EWDRAWINGS));EWDRAWINGS=JSON.parse(EWUNDO.pop());localStorage.setItem('fr-ew-drawings-'+(S.ew?.symbol||'')+'-'+(S.ew?.tf||''),JSON.stringify(EWDRAWINGS));ewDrawSvg()}}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();if(EWREDO.length){EWUNDO.push(JSON.stringify(EWDRAWINGS));EWDRAWINGS=JSON.parse(EWREDO.pop());localStorage.setItem('fr-ew-drawings-'+(S.ew?.symbol||'')+'-'+(S.ew?.tf||''),JSON.stringify(EWDRAWINGS));ewDrawSvg()}}if(e.key==='Escape')ewSetDrawTool('cursor')});
-document.addEventListener('fullscreenchange',()=>setTimeout(()=>{ewDrawSvg();if(S.ew){const t=ewData();const data=t?.chart||[];if(t&&data.length)ewPositionInvalidation(t,data)}},100));
+document.addEventListener('fullscreenchange',()=>setTimeout(()=>{ewDrawSvg();if(S.ew){const t=ewData();const data=t?.chart||[]}},100));
