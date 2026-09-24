@@ -187,7 +187,8 @@ def main():
          "source":"Yahoo Finance intraday OHLC; NIFTY 50 constituents from NSE",
          "note":"Rule-based Elliott-style heuristic. Wave labels are potential structures, not definitive Elliott Wave analysis.",
          "timeframes":list(TIMEFRAMES.keys()),"buy":sorted(buy,key=lambda r:(-r["score"],r["symbol"])),
-         "sell":sorted(sell,key=lambda r:(-r["score"],r["symbol"])),"details":details,\n         "us_buy":sorted(us_buy,key=lambda r:(-r["score"],r["symbol"])),"us_details":us_details}
+         "sell":sorted(sell,key=lambda r:(-r["score"],r["symbol"])),"details":details,
+         "us_buy":sorted(us_buy,key=lambda r:(-r["score"],r["symbol"])),"us_details":us_details}
     os.makedirs("site/data",exist_ok=True)
     with open("site/data/elliott.json","w",encoding="utf-8") as f: json.dump(out,f,ensure_ascii=False,separators=(",",":"))
     print("Elliott BUY:",len(buy),"SELL:",len(sell))
