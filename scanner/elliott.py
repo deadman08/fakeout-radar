@@ -105,8 +105,14 @@ def _detect(x,side):
     score,setup,i1,i2,i3,p1,p2,p3,retr=best
     if side=="BUY":
         fib={"0":p2,"38.2":p2-(p2-p1)*.382,"50":p2-(p2-p1)*.5,"61.8":p2-(p2-p1)*.618,"78.6":p2-(p2-p1)*.786,"100":p1}
+        wave_len=p2-p1
+        targets={"T1":p3+wave_len*0.618,"T2":p3+wave_len*1.0,"T3":p3+wave_len*1.618}
+        invalidation=p1
     else:
         fib={"0":p2,"38.2":p2+(p1-p2)*.382,"50":p2+(p1-p2)*.5,"61.8":p2+(p1-p2)*.618,"78.6":p2+(p1-p2)*.786,"100":p1}
+        wave_len=p1-p2
+        targets={"T1":p3-wave_len*0.618,"T2":p3-wave_len*1.0,"T3":p3-wave_len*1.618}
+        invalidation=p1
     return {
         "score":int(score),"setup":setup,"price":round(price,2),"trigger":round(p2,2),
         "rsi":round(float(x.rsi.iloc[-1]),1),"volume_ratio":round(vr,2),"retracement_pct":round(retr*100,1),
@@ -114,6 +120,7 @@ def _detect(x,side):
                   {"label":"1","time":x.index[i2].isoformat(),"price":round(p2,2)},
                   {"label":"2","time":x.index[i3].isoformat(),"price":round(p3,2)}],
         "fib":{k:round(v,2) for k,v in fib.items()},
+        "targets":{k:round(v,2) for k,v in targets.items()},"invalidation":round(invalidation,2),
         "chart":[{"time":int(ts.timestamp()),"open":round(float(r.Open),2),"high":round(float(r.High),2),
                   "low":round(float(r.Low),2),"close":round(float(r.Close),2)}
                  for ts,r in x.tail(180).iterrows()]
