@@ -122,7 +122,7 @@ def _detect(x,side):
         "fib":{k:round(v,2) for k,v in fib.items()},
         "targets":{k:round(v,2) for k,v in targets.items()},"invalidation":round(invalidation,2),
         "chart":[{"time":int(ts.timestamp()),"open":round(float(r.Open),2),"high":round(float(r.High),2),
-                  "low":round(float(r.Low),2),"close":round(float(r.Close),2)}
+                  "low":round(float(r.Low),2),"close":round(float(r.Close),2),"volume":int(r.Volume) if pd.notna(r.Volume) else 0}
                  for ts,r in x.tail(180).iterrows()]
     }
 
