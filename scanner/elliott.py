@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import numpy as np
 import pandas as pd
 import yfinance as yf
-from scan import get_nifty, NIFTY50_URL
+from scan import get_nifty, NIFTY50_URL, get_us_top50
 
 TIMEFRAMES = {
     "5m": ("5m", "5d", None),
@@ -128,12 +128,19 @@ def _detect(x,side):
 
 def main():
     nifty50=get_nifty(NIFTY50_URL)
+    us50=get_us_top50()
     tickers=[s+".NS" for s,_ in nifty50]
     raws={}
     for tf,(interval,period,rule) in TIMEFRAMES.items():
         key=interval+"|"+period
         if key not in raws: raws[key]=_download(tickers,interval,period)
     buy=[]; sell=[]; details={}
+    us_buy=[]; us_details={}
+    us_tickers=[s for s,_ in us50]
+    us_raws={}
+    for tf,(interval,period,rule) in TIMEFRAMES.items():
+        key=interval+"|"+period
+        if key not in us_raws: us_raws[key]=_download(us_tickers,interval,period)
     for sym,name in nifty50:
         details[sym]={"symbol":sym,"company":name,"timeframes":{}}
         best_b=None; best_s=None
@@ -158,11 +165,29 @@ def main():
             tf,b=best_b; buy.append({"symbol":sym,"company":name,"timeframe":tf,**{k:b[k] for k in ["setup","price","trigger","score","rsi","volume_ratio","retracement_pct","targets","invalidation"]},"t1":b["targets"]["T1"],"t2":b["targets"]["T2"],"t3":b["targets"]["T3"]})
         if best_s:
             tf,s=best_s; sell.append({"symbol":sym,"company":name,"timeframe":tf,**{k:s[k] for k in ["setup","price","trigger","score","rsi","volume_ratio","retracement_pct","targets","invalidation"]},"t1":s["targets"]["T1"],"t2":s["targets"]["T2"],"t3":s["targets"]["T3"]})
+    for sym,name in us50:
+        us_details[sym]={"symbol":sym,"company":name,"timeframes":{}}
+        best_b=None
+        for tf,(interval,period,rule) in TIMEFRAMES.items():
+            x=_one(us_raws.get(interval+"|"+period,pd.DataFrame()),sym,True)
+            if rule: x=_resample(x,rule)
+            b=_detect(x,"BUY")
+            chart=[{"time":int(ts.timestamp()),"open":round(float(r.Open),2),"high":round(float(r.High),2),
+                    "low":round(float(r.Low),2),"close":round(float(r.Close),2),
+                    "volume":int(r.Volume) if pd.notna(r.Volume) else 0}
+                   for ts,r in x.tail(180).iterrows()]
+            us_details[sym]["timeframes"][tf]={"chart":chart}
+            if b:
+                us_details[sym]["timeframes"][tf]["buy"]=b
+                if best_b is None or b["score"]>best_b[1]["score"]: best_b=(tf,b)
+        if best_b:
+            tf,b=best_b
+            us_buy.append({"symbol":sym,"company":name,"timeframe":tf,**{k:b[k] for k in ["setup","price","trigger","score","rsi","volume_ratio","retracement_pct","targets","invalidation"]},"t1":b["targets"]["T1"],"t2":b["targets"]["T2"],"t3":b["targets"]["T3"]})
     out={"generated_at":datetime.now(timezone.utc).isoformat(),
          "source":"Yahoo Finance intraday OHLC; NIFTY 50 constituents from NSE",
          "note":"Rule-based Elliott-style heuristic. Wave labels are potential structures, not definitive Elliott Wave analysis.",
          "timeframes":list(TIMEFRAMES.keys()),"buy":sorted(buy,key=lambda r:(-r["score"],r["symbol"])),
-         "sell":sorted(sell,key=lambda r:(-r["score"],r["symbol"])),"details":details}
+         "sell":sorted(sell,key=lambda r:(-r["score"],r["symbol"])),"details":details,\n         "us_buy":sorted(us_buy,key=lambda r:(-r["score"],r["symbol"])),"us_details":us_details}
     os.makedirs("site/data",exist_ok=True)
     with open("site/data/elliott.json","w",encoding="utf-8") as f: json.dump(out,f,ensure_ascii=False,separators=(",",":"))
     print("Elliott BUY:",len(buy),"SELL:",len(sell))
