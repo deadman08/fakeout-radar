@@ -48,7 +48,7 @@ window.addEventListener('resize',()=>{if(EWCHART){let w=document.querySelector('
 function setupEWInteractions(){let box=$('ewBox'),head=$('ewDrag');if(!box||!head)return;let drag=null;head.addEventListener('pointerdown',e=>{if(e.target.closest('button,select,input,label'))return;if(document.fullscreenElement)return;let r=box.getBoundingClientRect();box.style.position='fixed';box.style.left=r.left+'px';box.style.top=r.top+'px';box.style.margin='0';box.style.transform='none';drag={x:e.clientX,y:e.clientY,l:r.left,t:r.top};head.setPointerCapture(e.pointerId);box.classList.add('dragging')});head.addEventListener('pointermove',e=>{if(!drag)return;let l=Math.max(8,Math.min(window.innerWidth-box.offsetWidth-8,drag.l+e.clientX-drag.x)),t=Math.max(8,Math.min(window.innerHeight-box.offsetHeight-8,drag.t+e.clientY-drag.y));box.style.left=l+'px';box.style.top=t+'px'});head.addEventListener('pointerup',()=>{drag=null;box.classList.remove('dragging')});head.addEventListener('pointercancel',()=>{drag=null;box.classList.remove('dragging')})}
 setupEWInteractions();
 new ResizeObserver(()=>{if(EWCHART){let w=document.querySelector('.ew-chart-wrap');if(w&&w.clientWidth&&w.clientHeight)EWCHART.resize(w.clientWidth,w.clientHeight)}}).observe(document.querySelector('.ew-chart-wrap'));
-clock();setInterval(clock,15000);load();setInterval(load,60000);
+clock();setInterval(clock,15000);load();setInterval(()=>{if(EWLIVE&&document.visibilityState!=='hidden')load()},30000);
 /* TradingView-style drawing workspace: logical time/price drawings persist through redraws. */
 let EWDRAW='cursor',EWDRAWINGS=[],EWSTART=null,EWBRUSH=[],EWUNDO=[],EWREDO=[];
 function ewChartRect(){const s=$('ewDrawingLayer');return s?s.getBoundingClientRect():null}
