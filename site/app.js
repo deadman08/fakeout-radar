@@ -10,12 +10,14 @@ function resetEWView(){if(EWCHART){EWCHART.timeScale().fitContent();EWCHART.pric
 function ewData(){let z=S.ew?.d?.timeframes?.[S.ew.tf]?.[S.ew.side.toLowerCase()];return z||null}
 function ewClear(){if(EWCHART){try{EWCHART.remove()}catch(e){}}EWCHART=null;EWPRICE=null;EWVOL=null;EWSERIES=null;EWFIB=[];EWLINES=[]}
 function ewColor(v){return v>=0?'#27d69a':'#ff5577'}
+function ewCalcEMA(v,n){let k=2/(n+1),o=[],p=null;for(let x of v){p=p==null?x:x*k+p*(1-k);o.push(p)}return o}
+function ewCalcVWAP(d){let pv=0,vo=0;return d.map(x=>{let v=+x.volume||0;pv+=((x.high+x.low+x.close)/3)*v;vo+=v;return vo?pv/vo:null})}
 function drawEW(){
  let z=S.ew;if(!z)return;let t=ewData();$('ewSub').textContent=t?(t.setup+' · Current '+money(t.price)+' · Trigger '+money(t.trigger)):'No qualifying setup on this timeframe';
  $('ewStats').innerHTML=t?'<span>Score <b>'+t.score+'/5</b></span><span>RSI <b>'+t.rsi+'</b></span><span>Volume <b>'+t.volume_ratio+'×</b></span><span>Retracement <b>'+t.retracement_pct+'%</b></span><span>Target 1 <b>'+money(t.targets?.T1)+'</b></span><span>Target 2 <b>'+money(t.targets?.T2)+'</b></span><span>Target 3 <b>'+money(t.targets?.T3)+'</b></span><span>Invalidation <b>'+money(t.invalidation)+'</b></span>':'<span>Select another timeframe to inspect its structure.</span>';
  ewClear();if(!t)return;
  let wrap=document.getElementById('ewChartWrap'),L=window.LightweightCharts;if(!wrap||!L)return;
- let data=(t.chart||[]).filter(x=>Number.isFinite(+x.open)&&Number.isFinite(+x.high)&&Number.isFinite(+x.low)&&Number.isFinite(+x.close)).map(x=>({time:Math.floor(+x.time),open:+x.open,high:+x.high,low:+x.low,close:+x.close}));
+ let data=(t.chart||[]).filter(x=>Number.isFinite(+x.time)&&Number.isFinite(+x.open)&&Number.isFinite(+x.high)&&Number.isFinite(+x.low)&&Number.isFinite(+x.close)).map(x=>({time:Math.floor(+x.time),open:+x.open,high:+x.high,low:+x.low,close:+x.close,volume:+x.volume||0}));
  if(!data.length){$('ewSub').textContent='No candle data available for this timeframe';return}
  let w=Math.max(320,wrap.clientWidth),h=Math.max(300,wrap.clientHeight);
  EWCHART=L.createChart(wrap,{width:w,height:h,layout:{background:{type:'solid',color:'#080d19'},textColor:'#9fa8bd',fontFamily:'Inter,system-ui,sans-serif'},grid:{vertLines:{color:'rgba(255,255,255,.055)'},horzLines:{color:'rgba(255,255,255,.055)'}},crosshair:{mode:L.CrosshairMode.Normal},rightPriceScale:{borderColor:'rgba(255,255,255,.09)',autoScale:true,scaleMargins:{top:.08,bottom:.20}},timeScale:{borderColor:'rgba(255,255,255,.09)',timeVisible:true,secondsVisible:false,rightOffset:8,barSpacing:7,minBarSpacing:2}});
