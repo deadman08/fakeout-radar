@@ -141,11 +141,18 @@ def main():
             x=_one(raws.get(interval+"|"+period,pd.DataFrame()),sym+".NS",True)
             if rule: x=_resample(x,rule)
             b=_detect(x,"BUY"); s=_detect(x,"SELL")
+            # Always retain candle data for every timeframe so the popup can
+            # display the selected timeframe even when no qualifying setup exists.
+            chart=[{"time":int(ts.timestamp()),"open":round(float(r.Open),2),"high":round(float(r.High),2),
+                    "low":round(float(r.Low),2),"close":round(float(r.Close),2),
+                    "volume":int(r.Volume) if pd.notna(r.Volume) else 0}
+                   for ts,r in x.tail(180).iterrows()]
+            details[sym]["timeframes"][tf]={"chart":chart}
             if b:
-                details[sym]["timeframes"].setdefault(tf,{})["buy"]=b
+                details[sym]["timeframes"][tf]["buy"]=b
                 if best_b is None or b["score"]>best_b[1]["score"]: best_b=(tf,b)
             if s:
-                details[sym]["timeframes"].setdefault(tf,{})["sell"]=s
+                details[sym]["timeframes"][tf]["sell"]=s
                 if best_s is None or s["score"]>best_s[1]["score"]: best_s=(tf,s)
         if best_b:
             tf,b=best_b; buy.append({"symbol":sym,"company":name,"timeframe":tf,**{k:b[k] for k in ["setup","price","trigger","score","rsi","volume_ratio","retracement_pct","targets","invalidation"]},"t1":b["targets"]["T1"],"t2":b["targets"]["T2"],"t3":b["targets"]["T3"]})
