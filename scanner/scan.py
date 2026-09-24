@@ -19,7 +19,12 @@ def get_nifty(url):
     return [(str(s).strip(),str(n).strip()) for s,n in zip(df[sym_col],df[name_col])]
 
 def get_sp500():
-    tables=pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
+    # Wikipedia blocks urllib's default client on GitHub runners; fetch explicitly with a browser-like header.
+    url='https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
+    r=requests.get(url,headers={'User-Agent':UA,'Accept':'text/html,application/xhtml+xml'},timeout=30)
+    r.raise_for_status()
+    from io import StringIO
+    tables=pd.read_html(StringIO(r.text))
     df=tables[0]
     return [(str(s).strip(),str(n).strip()) for s,n in zip(df['Symbol'],df['Security'])]
 
