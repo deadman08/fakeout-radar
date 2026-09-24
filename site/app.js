@@ -12,25 +12,31 @@ function ewClear(){if(EWCHART){try{EWCHART.remove()}catch(e){}}EWCHART=null;EWPR
 function ewColor(v){return v>=0?'#27d69a':'#ff5577'}
 function ewCalcEMA(v,n){let k=2/(n+1),o=[],p=null;for(let x of v){p=p==null?x:x*k+p*(1-k);o.push(p)}return o}
 function ewCalcVWAP(d){let pv=0,vo=0;return d.map(x=>{let v=+x.volume||0;pv+=((x.high+x.low+x.close)/3)*v;vo+=v;return vo?pv/vo:null})}
+function ewCalcEMA(v,n){let k=2/(n+1),o=[],p=null;for(let x of v){p=p==null?x:x*k+p*(1-k);o.push(p)}return o}
+function ewCalcVWAP(d){let pv=0,vo=0;return d.map(x=>{let v=+x.volume||0;pv+=((x.high+x.low+x.close)/3)*v;vo+=v;return vo?pv/vo:null})}
 function drawEW(){
  let z=S.ew;if(!z)return;let t=ewData();$('ewSub').textContent=t?(t.setup+' · Current '+money(t.price)+' · Trigger '+money(t.trigger)):'No qualifying setup on this timeframe';
  $('ewStats').innerHTML=t?'<span>Score <b>'+t.score+'/5</b></span><span>RSI <b>'+t.rsi+'</b></span><span>Volume <b>'+t.volume_ratio+'×</b></span><span>Retracement <b>'+t.retracement_pct+'%</b></span><span>Target 1 <b>'+money(t.targets?.T1)+'</b></span><span>Target 2 <b>'+money(t.targets?.T2)+'</b></span><span>Target 3 <b>'+money(t.targets?.T3)+'</b></span><span>Invalidation <b>'+money(t.invalidation)+'</b></span>':'<span>Select another timeframe to inspect its structure.</span>';
  ewClear();if(!t)return;
- let wrap=document.getElementById('ewChartWrap'),L=window.LightweightCharts;if(!wrap||!L)return;
+ let wrap=document.getElementById('ewChartWrap'),L=window.LightweightCharts;if(!wrap||!L){$('ewSub').textContent='Chart library failed to load';return}
  let data=(t.chart||[]).filter(x=>Number.isFinite(+x.time)&&Number.isFinite(+x.open)&&Number.isFinite(+x.high)&&Number.isFinite(+x.low)&&Number.isFinite(+x.close)).map(x=>({time:Math.floor(+x.time),open:+x.open,high:+x.high,low:+x.low,close:+x.close,volume:+x.volume||0}));
  if(!data.length){$('ewSub').textContent='No candle data available for this timeframe';return}
- let w=Math.max(320,wrap.clientWidth),h=Math.max(300,wrap.clientHeight);
- EWCHART=L.createChart(wrap,{width:w,height:h,layout:{background:{type:'solid',color:'#080d19'},textColor:'#9fa8bd',fontFamily:'Inter,system-ui,sans-serif'},grid:{vertLines:{color:'rgba(255,255,255,.055)'},horzLines:{color:'rgba(255,255,255,.055)'}},crosshair:{mode:L.CrosshairMode.Normal},rightPriceScale:{borderColor:'rgba(255,255,255,.09)',autoScale:true,scaleMargins:{top:.08,bottom:.20}},timeScale:{borderColor:'rgba(255,255,255,.09)',timeVisible:true,secondsVisible:false,rightOffset:8,barSpacing:7,minBarSpacing:2}});
- EWSERIES=EWCHART.addCandlestickSeries({upColor:'#27d69a',downColor:'#ff5577',borderUpColor:'#27d69a',borderDownColor:'#ff5577',wickUpColor:'#27d69a',wickDownColor:'#ff5577',priceLineVisible:true,lastValueVisible:true});
- EWSERIES.setData(data);
- let vol=(t.chart||[]).filter(x=>Number.isFinite(+x.time)).map(x=>({time:Math.floor(+x.time),value:Number(x.volume||0),color:+x.close>=+x.open?'rgba(39,214,154,.35)':'rgba(255,85,119,.35)'})).filter(x=>x.value>0);
- if(vol.length){EWVOL=EWCHART.addHistogramSeries({priceFormat:{type:'volume'},priceScaleId:'vol'});EWVOL.setData(vol);EWCHART.priceScale('vol').applyOptions({scaleMargins:{top:.82,bottom:0},borderVisible:false});}
- EWCHART.timeScale().fitContent();
- const addLine=(value,label,color)=>{if(value==null||!Number.isFinite(+value))return;let s=EWCHART.addLineSeries({color,width:1,lineStyle:L.LineStyle.Dashed,priceLineVisible:false,lastValueVisible:true,title:label});s.setData(data.map(x=>({time:x.time,value:+value})));EWLINES.push(s)};
- addLine(t.trigger,'TRIGGER','#ffffff');addLine(t.targets?.T1,'T1','#f5c542');addLine(t.targets?.T2,'T2','#f5c542');addLine(t.targets?.T3,'T3','#f5c542');addLine(t.invalidation,'INV','#ff5577');
- (t.pivots||[]).forEach(p=>{let s=EWCHART.addLineSeries({color:'#b9adff',width:2,lineStyle:L.LineStyle.Solid,priceLineVisible:false,lastValueVisible:false,title:p.label});let time=Math.floor(new Date(p.time).getTime()/1000);s.setData([{time,value:+p.price},{time:data[data.length-1].time,value:+p.price}]);EWLINES.push(s)});
- if($('fibToggle').checked)Object.entries(t.fib||{}).forEach(([k,v])=>addLine(v,k+'%','#7c5cff'));
- EWCHART.subscribeCrosshairMove(p=>{let x=p?.seriesData?.get(EWSERIES);if(x&&x.time){$('ewSub').textContent=t.setup+' · '+new Date(x.time*1000).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',hour12:false})+' · O '+x.open.toFixed(2)+' H '+x.high.toFixed(2)+' L '+x.low.toFixed(2)+' C '+x.close.toFixed(2)}});
+ try{
+  let w=Math.max(320,wrap.clientWidth),h=Math.max(300,wrap.clientHeight);
+  EWCHART=L.createChart(wrap,{width:w,height:h,layout:{background:{type:'solid',color:'#080d19'},textColor:'#9fa8bd'},grid:{vertLines:{color:'rgba(255,255,255,.055)'},horzLines:{color:'rgba(255,255,255,.055)'}},crosshair:{mode:EWCROSS?L.CrosshairMode.Normal:L.CrosshairMode.Hidden},rightPriceScale:{borderColor:'rgba(255,255,255,.09)',autoScale:true,scaleMargins:{top:.08,bottom:.20}},timeScale:{borderColor:'rgba(255,255,255,.09)',timeVisible:true,rightOffset:8,barSpacing:7,minBarSpacing:2}});
+  if(EWTYPE==='line'){EWSERIES=EWCHART.addLineSeries({color:'#4da3ff',lineWidth:2});EWSERIES.setData(data.map(x=>({time:x.time,value:x.close})));}
+  else if(EWTYPE==='area'){EWSERIES=EWCHART.addAreaSeries({lineColor:'#4da3ff',topColor:'rgba(77,163,255,.28)',bottomColor:'rgba(77,163,255,.02)',lineWidth:2});EWSERIES.setData(data.map(x=>({time:x.time,value:x.close})));}
+  else{EWSERIES=EWCHART.addCandlestickSeries({upColor:'#27d69a',downColor:'#ff5577',borderUpColor:'#27d69a',borderDownColor:'#ff5577',wickUpColor:'#27d69a',wickDownColor:'#ff5577'});EWSERIES.setData(data);}
+  const line=(vals,label,color)=>{let s=EWCHART.addLineSeries({color,width:1,priceLineVisible:false,lastValueVisible:true,title:label});s.setData(data.map((x,i)=>({time:x.time,value:vals[i]})).filter(x=>Number.isFinite(x.value)));EWLINES.push(s)};
+  let closes=data.map(x=>x.close);if(EWIND.ema20)line(ewCalcEMA(closes,20),'EMA 20','#f5c542');if(EWIND.ema50)line(ewCalcEMA(closes,50),'EMA 50','#7c5cff');if(EWIND.vwap)line(ewCalcVWAP(data),'VWAP','#4da3ff');
+  if(EWIND.volume){let v=data.map(x=>({time:x.time,value:x.volume,color:x.close>=x.open?'rgba(39,214,154,.35)':'rgba(255,85,119,.35)'})).filter(x=>x.value>0);if(v.length){EWVOL=EWCHART.addHistogramSeries({priceFormat:{type:'volume'},priceScaleId:'vol'});EWVOL.setData(v);EWCHART.priceScale('vol').applyOptions({scaleMargins:{top:.82,bottom:0},borderVisible:false})}}
+  EWCHART.timeScale().fitContent();
+  const level=(v,label,color)=>{if(!Number.isFinite(+v))return;let s=EWCHART.addLineSeries({color,width:1,lineStyle:L.LineStyle.Dashed,priceLineVisible:false,lastValueVisible:true,title:label});s.setData(data.map(x=>({time:x.time,value:+v})));EWLINES.push(s)};
+  level(t.trigger,'TRIGGER','#fff');level(t.targets?.T1,'T1','#f5c542');level(t.targets?.T2,'T2','#f5c542');level(t.targets?.T3,'T3','#f5c542');level(t.invalidation,'INV','#ff5577');
+  (t.pivots||[]).forEach(p=>{let s=EWCHART.addLineSeries({color:'#b9adff',width:2,priceLineVisible:false,lastValueVisible:false,title:'Wave '+p.label});let tm=Math.floor(new Date(p.time).getTime()/1000);s.setData([{time:tm,value:+p.price},{time:data[data.length-1].time,value:+p.price}]);EWLINES.push(s)});
+  if($('fibToggle').checked)Object.entries(t.fib||{}).forEach(([k,v])=>level(v,k+'%','#7c5cff'));
+  EWCHART.subscribeCrosshairMove(p=>{let x=p?.seriesData?.get(EWSERIES);if(x&&x.time)$('ewSub').textContent=t.setup+' · '+new Date(x.time*1000).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',hour12:false})+' · '+(x.close??x.value).toFixed(2)});
+ }catch(e){$('ewSub').textContent='Chart error: '+(e.message||e)}
 }
 function openEW(symbol,side){let d=S.data.elliott?.details?.[symbol];if(!d)return;S.ew={symbol,side,d,tf:(side==='BUY'?S.data.elliott.buy:S.data.elliott.sell).find(x=>x.symbol===symbol)?.timeframe||'15m'};let box=$('ewBox');box.style.position='fixed';box.style.left='50%';box.style.top='50%';box.style.transform='translate(-50%,-50%)';box.style.margin='0';let sel=$('ewTf');sel.innerHTML=(S.data.elliott.timeframes||['5m','15m','30m','1H','4H','1D','1W']).map(x=>'<option value="'+x+'">'+x+'</option>').join('');sel.value=S.ew.tf;$('ewTitle').textContent=symbol+' · '+d.company;$('ewEy').textContent='ELLIOTT WAVE '+side;$('ewNote').textContent=S.data.elliott.note||'';$('ewModal').classList.add('show');$('ewModal').setAttribute('aria-hidden','false');requestAnimationFrame(()=>requestAnimationFrame(drawEW))}
 function closeEW(){ewClear();$('ewModal').classList.remove('show');$('ewModal').setAttribute('aria-hidden','true');S.ew=null}
