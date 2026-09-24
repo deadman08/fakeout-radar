@@ -40,6 +40,18 @@ function drawEW(){
   const level=(v,label,color)=>{if(!Number.isFinite(+v))return;let s=EWCHART.addLineSeries({color,width:1,lineStyle:L.LineStyle.Dashed,priceLineVisible:false,lastValueVisible:true,title:label});s.setData(data.map(x=>({time:x.time,value:+v})));EWLINES.push(s)};
   if(EWPROJECTION){ level(t.trigger,'TRIGGER','#fff'); const pv=(t.pivots||[]).filter(p=>Number.isFinite(+p.price)); if(pv.length>=3){ const wave=pv.map(p=>({time:Math.floor(new Date(p.time).getTime()/1000),price:+p.price})); const end=data[data.length-1].time; const step=Math.max(86400,Math.round((end-wave[2].time)/4)||86400); const projected=[{time:wave[2].time,price:wave[2].price},{time:end+step,price:+(t.targets?.T1??wave[2].price)},{time:end+step*2,price:+(t.targets?.T2??wave[2].price)},{time:end+step*3,price:+(t.targets?.T3??wave[2].price)}]; const s=EWCHART.addLineSeries({color:'#ffb84d',width:3,lineStyle:L.LineStyle.Solid,priceLineVisible:false,lastValueVisible:false,title:'Elliott projection'}); s.setData([...wave,...projected]); EWLINES.push(s); } }
   (t.pivots||[]).forEach(p=>{let s=EWCHART.addLineSeries({color:'#b9adff',width:2,priceLineVisible:false,lastValueVisible:false,title:'Wave '+p.label});let tm=Math.floor(new Date(p.time).getTime()/1000);s.setData([{time:tm,value:+p.price},{time:data[data.length-1].time,value:+p.price}]);EWLINES.push(s)});
+  // Elliott wave count markers: Wave 1, Wave 2 and Wave 3 are shown directly on the candles.
+  if(t.pivots?.length>=3 && EWSERIES && EWSERIES.setMarkers){
+    const marks=t.pivots.slice(0,3).map((p,i)=>({
+      time:Math.floor(new Date(p.time).getTime()/1000),
+      position:(i===1 ? (S.ew.side==='BUY'?'aboveBar':'belowBar') : (S.ew.side==='BUY'?'belowBar':'aboveBar')),
+      color:'#ffb84d',
+      shape:'circle',
+      text:'Wave '+(i+1)
+    }));
+    EWSERIES.setMarkers(marks);
+  }
+
   if($('fibToggle').checked)Object.entries(t.fib||{}).forEach(([k,v])=>level(v,k+'%','#7c5cff'));
   EWCHART.subscribeCrosshairMove(p=>{let x=p?.seriesData?.get(EWSERIES);if(x&&x.time)$('ewSub').textContent=t.setup+' · '+new Date(x.time*1000).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',hour12:false})+' · '+(x.close??x.value).toFixed(2)});
  }catch(e){$('ewSub').textContent='Chart error: '+(e.message||e)}
